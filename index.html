@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BOOTH発送照合 — 注文と発送コードの取り違え防止</title>
+<title>BOOTH発送照合｜注文と発送コードの取り違え防止</title>
 <style>
   :root{
     --ink:#22242a; --sub:#6b6f78; --line:#e3e4e8; --bg:#fbfbfc; --card:#ffffff;
@@ -84,9 +84,9 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="kicker">Axioknot — small tool</div>
+    <div class="kicker">Axioknot · small tool</div>
     <h1>BOOTH発送照合</h1>
-    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストと、梱包に使える印刷物が作れます。</p>
+    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストを表示し、梱包票と外貼り票を印刷できます。</p>
   </header>
 
   <section>
@@ -94,7 +94,7 @@
     <h2>宛名印刷用CSVを読み込む</h2>
     <div class="drop" id="drop">CSVファイルをここに置くか、クリックして選んでください</div>
     <input type="file" id="file" accept=".csv,text/csv">
-    <p class="note">データはこの端末の中だけで処理します。外部に送信することはありません。作業の途中経過もこの端末にだけ保存されます。</p>
+    <p class="note">データはこのブラウザの中だけで処理します。外部に送信することはありません。作業の途中経過はこのブラウザに保存されます。共用のPCでは、作業が終わったら「保存したデータを消す」を押してください。</p>
     <div id="mapbox" class="hidden">
       <p class="note">列の対応が自動で分かりませんでした。どの列が何か教えてください。</p>
       <div class="maprow">注文番号 <select id="mapOrder"></select></div>
@@ -115,7 +115,7 @@
     <div id="orders"></div>
     <div class="step" style="margin-top:20px">STEP 3</div>
     <h2>印刷して使う</h2>
-    <p class="note">梱包票は、商品を入れるときのチェック用です。外貼り票は、封をした荷物の外側に貼るための小さい票で、注文番号と発送コードが載ります。</p>
+    <p class="note">梱包票は商品を入れるときのチェック用です。外貼り票は封をした荷物の外側に貼るための小さい票で、注文番号と発送コードが載ります。</p>
     <div class="bar">
       <button id="printSlipsBtn" class="primary">梱包票を印刷</button>
       <button id="printTicketsBtn" class="primary">外貼り票を印刷</button>
@@ -124,7 +124,7 @@
   </section>
 
   <footer>
-    使い方：発送作業の前にCSVを読み込み、梱包票を印刷して、商品を入れながらチェックします。発送コードは画面で貼っても、印刷した票に書き込んでも大丈夫です。公式の配送ラベルはBOOTHが発行するものを使ってください。この道具はBOOTH公式のものではありません。
+    使い方：発送作業の前にCSVを読み込み、梱包票を印刷して、商品を入れながらチェックします。発送コードを画面で貼ると記録され、重複も警告されます。印刷した票に手で書いたコードは、この道具では確かめられません。宛名ラベルはお使いの配送サービスで作ってください。外貼り票は宛名ラベルの代わりにはなりません。この道具はBOOTH公式のものではありません。
   </footer>
 </div>
 
