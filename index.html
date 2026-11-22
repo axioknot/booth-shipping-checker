@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOOTH発送照合 — 注文と発送コードの取り違え防止</title>
+<style>
+  :root{
+    --ink:#22242a; --sub:#6b6f78; --line:#e3e4e8; --bg:#fbfbfc; --card:#ffffff;
+    --accent:#b03a5b; --ok:#2e7d4f; --warn:#b3261e; --warnbg:#fdf0ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:32px 20px 64px}
+  header{margin-bottom:28px}
+  .kicker{font-size:11px;letter-spacing:.18em;color:var(--sub);text-transform:uppercase}
+  h1{font-size:26px;font-weight:600;margin:6px 0 8px;letter-spacing:.02em}
+  .lead{color:var(--sub);font-size:14px;margin:0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:20px;margin-bottom:16px}
+  .step{font-size:11px;letter-spacing:.14em;color:var(--accent);margin-bottom:6px}
+  h2{font-size:16px;font-weight:600;margin:0 0 10px}
+  p.note{font-size:13px;color:var(--sub);margin:6px 0}
+  .drop{border:1.5px dashed var(--line);border-radius:8px;padding:22px;text-align:center;
+    color:var(--sub);font-size:14px;cursor:pointer;transition:border-color .15s, background .15s}
+  .drop:hover,.drop.over{border-color:var(--accent);background:#fdf7f9}
+  input[type=file]{display:none}
+  .bar{display:flex;align-items:center;gap:12px;margin:4px 0 12px}
+  .bar .count{font-size:14px}
+  .bar .track{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+  .bar .fill{height:100%;background:var(--ok);width:0%;transition:width .25s}
+  button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:7px;padding:7px 14px;cursor:pointer;transition:background .15s,border-color .15s}
+  button:hover{border-color:#c9ccd4;background:#f6f6f8}
+  button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.primary:hover{background:#3a3d45}
+  .order{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+  .order.done{border-color:#cfe5d8;background:#f5faf7}
+  .order.dup{border-color:var(--warn);background:var(--warnbg)}
+  .order .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .order .no{font-size:17px;font-weight:600;letter-spacing:.03em}
+  .order .buyer{font-size:12px;color:var(--sub)}
+  .order ul{margin:8px 0;padding-left:18px;font-size:14px}
+  .order .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .order input[type=text]{flex:1;min-width:180px;font:inherit;font-size:14px;
+    border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+  .order label.check{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);border-radius:7px;padding:7px 12px;background:#fff}
+  .order.done label.check{border-color:var(--ok);color:var(--ok)}
+  .dupmsg{display:none;color:var(--warn);font-size:13px;margin-top:6px}
+  .order.dup .dupmsg{display:block}
+  .hidden{display:none}
+  select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+  .maprow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;font-size:14px}
+  footer{color:var(--sub);font-size:12px;margin-top:24px}
+  @media print{
+    body{background:#fff}
+    .noprint{display:none !important}
+    section{border:none;padding:0}
+    .order{break-inside:avoid;border-color:#bbb}
+    .order input[type=text]{border:none;border-bottom:1px solid #999}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Axioknot — small tool</div>
+    <h1>BOOTH発送照合</h1>
+    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための小さな道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストになります。</p>
+  </header>
+
+  <section>
+    <div class="step">STEP 1</div>
+    <h2>宛名印刷用CSVを読み込む</h2>
+    <div class="drop" id="drop">CSVファイルをここに置くか、クリックして選んでください</div>
+    <input type="file" id="file" accept=".csv,text/csv">
+    <p class="note">データはこの端末の中だけで処理します。外部に送信することはありません。作業の途中経過もこの端末にだけ保存されます。</p>
+    <div id="mapbox" class="hidden">
+      <p class="note">列の対応が自動で分かりませんでした。どの列が何か教えてください。</p>
+      <div class="maprow">注文番号 <select id="mapOrder"></select></div>
+      <div class="maprow">商品名 <select id="mapItem"></select></div>
+      <div class="maprow">数量 <select id="mapQty"></select></div>
+      <button id="mapApply" class="primary">この対応で読み込む</button>
+    </div>
+  </section>
+
+  <section id="listbox" class="hidden">
+    <div class="step">STEP 2</div>
+    <h2>梱包しながら照合する</h2>
+    <div class="bar">
+      <span class="count" id="progress">0 / 0 件 梱包済み</span>
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <button id="printBtn" class="noprint">照合リストを印刷</button>
+    </div>
+    <p class="note">発送コードを注文の欄に貼ると、その注文に紐づきます。同じコードが2つの注文に使われると警告が出ます。残っている未梱包の注文が一目で分かります。</p>
+    <div id="orders"></div>
+    <div class="noprint" style="margin-top:14px">
+      <button id="clearBtn">保存したデータを消す</button>
+    </div>
+  </section>
+
+  <footer>
+    使い方：発送作業の前にCSVを読み込み、梱包した順に発送コードを貼って「梱包した」にチェックを入れてください。ラベル印刷の機能はありません。この道具はBOOTH公式のものではありません。
+  </footer>
+</div>
+
+<script>
+"use strict";
+var LS_KEY = "booth-shipping-checker-v1";
+var state = { orders: [], fileName: "" };
+
+function decodeBuffer(buf){
+  var utf8 = new TextDecoder("utf-8").decode(buf);
+  if (utf8.indexOf("�") === -1) return utf8;
+  try { return new TextDecoder("shift-jis").decode(buf); } catch(e){ return utf8; }
+}
+function parseCSV(text){
+  var rows = [], row = [], cur = "", inQ = false, i, c;
+  text = text.replace(/^\uFEFF/, "");
+  for (i = 0; i < text.length; i++){
+    c = text[i];
+    if (inQ){
+      if (c === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else inQ = false; }
+      else cur += c;
+    } else if (c === '"'){ inQ = true; }
+    else if (c === ","){ row.push(cur); cur = ""; }
+    else if (c === "\n"){ row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (c !== "\r"){ cur += c; }
+  }
+  if (cur !== "" || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.length > 1 || (r.length === 1 && r[0].trim() !== ""); });
+}
+function findCol(headers, keys){
+  for (var i = 0; i < headers.length; i++){
+    var h = headers[i].replace(/\s/g, "");
+    for (var j = 0; j < keys.length; j++){ if (h.indexOf(keys[j]) !== -1) return i; }
+  }
+  return -1;
+}
+function detectMapping(headers){
+  return {
+    order: findCol(headers, ["注文番号","注文ID","注文コード","注文No","order"]),
+    item:  findCol(headers, ["商品名","商品","タイトル","アイテム","品名"]),
+    qty:   findCol(headers, ["数量","個数","点数"]),
+    buyer: findCol(headers, ["宛名","購入者","氏名","名前","お名前"])
+  };
+}
+function groupOrders(rows, map){
+  var byKey = {}, list = [], i, r, key, o;
+  for (i = 0; i < rows.length; i++){
+    r = rows[i];
+    key = (r[map.order] || "").trim();
+    if (!key) key = "行" + (i + 1);
+    if (!byKey[key]){ o = { no: key, buyer: map.buyer >= 0 ? (r[map.buyer] || "") : "", items: [], code: "", done: false }; byKey[key] = o; list.push(o); }
+    byKey[key].items.push({
+      name: map.item >= 0 ? (r[map.item] || "") : "",
+      qty: map.qty >= 0 ? (r[map.qty] || "") : ""
+    });
+  }
+  return list;
+}
+function duplicateCodes(orders){
+  var seen = {}, dups = {}, i, code;
+  for (i = 0; i < orders.length; i++){
+    code = (orders[i].code || "").trim();
+    if (!code) continue;
+    if (seen[code]){ dups[code] = true; } else seen[code] = true;
+  }
+  return dups;
+}
+
+/* ---------- UI ---------- */
+var $ = function(id){ return document.getElementById(id); };
+var pendingRows = null;
+
+function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){} }
+function load(){
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (raw){ state = JSON.parse(raw); if (state.orders && state.orders.length) render(); }
+  } catch(e){}
+}
+function render(){
+  var box = $("orders"); box.innerHTML = "";
+  $("listbox").classList.remove("hidden");
+  var dups = duplicateCodes(state.orders);
+  var doneCount = 0;
+  state.orders.forEach(function(o, idx){
+    if (o.done) doneCount++;
+    var div = document.createElement("div");
+    div.className = "order" + (o.done ? " done" : "") + ((o.code && dups[o.code.trim()]) ? " dup" : "");
+    var itemsHtml = o.items.map(function(it){
+      return "<li>" + escapeHtml(it.name) + (it.qty ? " × " + escapeHtml(it.qty) : "") + "</li>";
+    }).join("");
+    div.innerHTML =
+      '<div class="head"><span class="no">' + escapeHtml(o.no) + '</span>' +
+      (o.buyer ? '<span class="buyer">' + escapeHtml(o.buyer) + '</span>' : "") + "</div>" +
+      "<ul>" + itemsHtml + "</ul>" +
+      '<div class="row noprint"><input type="text" placeholder="発送コードを貼り付け" value="' + escapeAttr(o.code) + '">' +
+      '<label class="check"><input type="checkbox"' + (o.done ? " checked" : "") + "> 梱包した</label></div>" +
+      '<div class="dupmsg">この発送コードは他の注文にも使われています。取り違えがないか確認してください。</div>' +
+      (o.code ? '<p class="note">発送コード：' + escapeHtml(o.code) + "</p>" : "");
+    var input = div.querySelector("input[type=text]");
+    var check = div.querySelector("input[type=checkbox]");
+    input.addEventListener("change", function(){ state.orders[idx].code = input.value; save(); render(); });
+    check.addEventListener("change", function(){ state.orders[idx].done = check.checked; save(); render(); });
+    box.appendChild(div);
+  });
+  $("progress").textContent = doneCount + " / " + state.orders.length + " 件 梱包済み";
+  $("fill").style.width = state.orders.length ? (100 * doneCount / state.orders.length) + "%" : "0%";
+}
+function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+function handleText(text, fileName){
+  var rows = parseCSV(text);
+  if (rows.length < 2){ alert("CSVの中身が読み取れませんでした。"); return; }
+  var headers = rows[0], map = detectMapping(headers);
+  if (map.order === -1 || map.item === -1){
+    pendingRows = rows;
+    ["mapOrder","mapItem","mapQty"].forEach(function(id){
+      var sel = $(id); sel.innerHTML = "";
+      headers.forEach(function(h, i){ var op = document.createElement("option"); op.value = i; op.textContent = h || ("列" + (i+1)); sel.appendChild(op); });
+    });
+    if (map.order >= 0) $("mapOrder").value = map.order;
+    if (map.item >= 0) $("mapItem").value = map.item;
+    if (map.qty >= 0) $("mapQty").value = map.qty;
+    $("mapbox").classList.remove("hidden");
+    return;
+  }
+  applyRows(rows, map, fileName);
+}
+function applyRows(rows, map, fileName){
+  state.orders = groupOrders(rows.slice(1), map);
+  state.fileName = fileName || "";
+  save(); render();
+}
+$("mapApply").addEventListener("click", function(){
+  if (!pendingRows) return;
+  var map = { order: parseInt($("mapOrder").value, 10), item: parseInt($("mapItem").value, 10), qty: parseInt($("mapQty").value, 10), buyer: -1 };
+  $("mapbox").classList.add("hidden");
+  applyRows(pendingRows, map, "");
+  pendingRows = null;
+});
+function handleFile(file){
+  if (!file) return;
+  file.arrayBuffer().then(function(buf){ handleText(decodeBuffer(buf), file.name); });
+}
+var drop = $("drop"), fileInput = $("file");
+drop.addEventListener("click", function(){ fileInput.click(); });
+fileInput.addEventListener("change", function(){ handleFile(fileInput.files[0]); });
+drop.addEventListener("dragover", function(e){ e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", function(){ drop.classList.remove("over"); });
+drop.addEventListener("drop", function(e){ e.preventDefault(); drop.classList.remove("over"); handleFile(e.dataTransfer.files[0]); });
+$("printBtn").addEventListener("click", function(){ window.print(); });
+$("clearBtn").addEventListener("click", function(){
+  if (confirm("保存した照合データを消しますか？")){ state = { orders: [], fileName: "" }; save(); $("orders").innerHTML = ""; $("listbox").classList.add("hidden"); }
+});
+load();
+</script>
+</body>
+</html>
