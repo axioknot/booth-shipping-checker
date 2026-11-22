@@ -27,9 +27,9 @@
     color:var(--sub);font-size:14px;cursor:pointer;transition:border-color .15s, background .15s}
   .drop:hover,.drop.over{border-color:var(--accent);background:#fdf7f9}
   input[type=file]{display:none}
-  .bar{display:flex;align-items:center;gap:12px;margin:4px 0 12px}
+  .bar{display:flex;align-items:center;gap:12px;margin:4px 0 12px;flex-wrap:wrap}
   .bar .count{font-size:14px}
-  .bar .track{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+  .bar .track{flex:1;min-width:120px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
   .bar .fill{height:100%;background:var(--ok);width:0%;transition:width .25s}
   button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;color:var(--ink);
     border-radius:7px;padding:7px 14px;cursor:pointer;transition:background .15s,border-color .15s}
@@ -39,9 +39,9 @@
   .order{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:10px}
   .order.done{border-color:#cfe5d8;background:#f5faf7}
   .order.dup{border-color:var(--warn);background:var(--warnbg)}
-  .order .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .order .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
   .order .no{font-size:17px;font-weight:600;letter-spacing:.03em}
-  .order .buyer{font-size:12px;color:var(--sub)}
+  .order .meta{font-size:12px;color:var(--sub)}
   .order ul{margin:8px 0;padding-left:18px;font-size:14px}
   .order .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
   .order input[type=text]{flex:1;min-width:180px;font:inherit;font-size:14px;
@@ -55,12 +55,29 @@
   select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:6px 8px}
   .maprow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;font-size:14px}
   footer{color:var(--sub);font-size:12px;margin-top:24px}
+
+  /* ---------- printables (screen: hidden) ---------- */
+  .printarea{display:none}
   @media print{
     body{background:#fff}
-    .noprint{display:none !important}
-    section{border:none;padding:0}
-    .order{break-inside:avoid;border-color:#bbb}
-    .order input[type=text]{border:none;border-bottom:1px solid #999}
+    .wrap{max-width:none;padding:0}
+    header, section, footer{display:none !important}
+    .printarea{display:none}
+    body.print-slips #printSlips{display:block}
+    body.print-tickets #printTickets{display:block}
+    .slip{border:1.5px dashed #888;border-radius:6px;padding:14px 16px;margin-bottom:12px;break-inside:avoid}
+    .slip .s-no{font-size:24px;font-weight:700;letter-spacing:.04em}
+    .slip .s-meta{font-size:12px;color:#333}
+    .slip table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+    .slip th,.slip td{border-bottom:1px solid #ccc;padding:5px 6px;text-align:left}
+    .slip .s-code{margin-top:10px;font-size:13px}
+    .slip .s-codebox{display:inline-block;min-width:260px;border:1.5px solid #333;border-radius:4px;
+      padding:6px 10px;font-size:15px;letter-spacing:.05em}
+    .ticketgrid{display:flex;flex-wrap:wrap;gap:0}
+    .ticket{width:49%;border:1.5px dashed #888;padding:10px 12px;break-inside:avoid}
+    .ticket .t-no{font-size:20px;font-weight:700;letter-spacing:.04em}
+    .ticket .t-line{font-size:12px}
+    .ticket .t-code{font-size:14px;margin-top:4px}
   }
 </style>
 </head>
@@ -69,7 +86,7 @@
   <header>
     <div class="kicker">Axioknot — small tool</div>
     <h1>BOOTH発送照合</h1>
-    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための小さな道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストになります。</p>
+    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストと、梱包に使える印刷物が作れます。</p>
   </header>
 
   <section>
@@ -81,8 +98,8 @@
     <div id="mapbox" class="hidden">
       <p class="note">列の対応が自動で分かりませんでした。どの列が何か教えてください。</p>
       <div class="maprow">注文番号 <select id="mapOrder"></select></div>
-      <div class="maprow">商品名 <select id="mapItem"></select></div>
-      <div class="maprow">数量 <select id="mapQty"></select></div>
+      <div class="maprow">商品の列 <select id="mapItem"></select></div>
+      <div class="maprow">数量の列（あれば） <select id="mapQty"></select></div>
       <button id="mapApply" class="primary">この対応で読み込む</button>
     </div>
   </section>
@@ -93,23 +110,30 @@
     <div class="bar">
       <span class="count" id="progress">0 / 0 件 梱包済み</span>
       <div class="track"><div class="fill" id="fill"></div></div>
-      <button id="printBtn" class="noprint">照合リストを印刷</button>
     </div>
-    <p class="note">発送コードを注文の欄に貼ると、その注文に紐づきます。同じコードが2つの注文に使われると警告が出ます。残っている未梱包の注文が一目で分かります。</p>
+    <p class="note">発送コードを注文の欄に貼ると、その注文に紐づきます。同じコードが2つの注文に使われると警告が出ます。</p>
     <div id="orders"></div>
-    <div class="noprint" style="margin-top:14px">
+    <div class="step" style="margin-top:20px">STEP 3</div>
+    <h2>印刷して使う</h2>
+    <p class="note">梱包票は、商品を入れるときのチェック用です。外貼り票は、封をした荷物の外側に貼るための小さい票で、注文番号と発送コードが載ります。</p>
+    <div class="bar">
+      <button id="printSlipsBtn" class="primary">梱包票を印刷</button>
+      <button id="printTicketsBtn" class="primary">外貼り票を印刷</button>
       <button id="clearBtn">保存したデータを消す</button>
     </div>
   </section>
 
   <footer>
-    使い方：発送作業の前にCSVを読み込み、梱包した順に発送コードを貼って「梱包した」にチェックを入れてください。ラベル印刷の機能はありません。この道具はBOOTH公式のものではありません。
+    使い方：発送作業の前にCSVを読み込み、梱包票を印刷して、商品を入れながらチェックします。発送コードは画面で貼っても、印刷した票に書き込んでも大丈夫です。公式の配送ラベルはBOOTHが発行するものを使ってください。この道具はBOOTH公式のものではありません。
   </footer>
 </div>
 
+<div class="printarea" id="printSlips"></div>
+<div class="printarea" id="printTickets"></div>
+
 <script>
 "use strict";
-var LS_KEY = "booth-shipping-checker-v1";
+var LS_KEY = "booth-shipping-checker-v2";
 var state = { orders: [], fileName: "" };
 
 function decodeBuffer(buf){
@@ -142,40 +166,72 @@ function findCol(headers, keys){
 }
 function detectMapping(headers){
   return {
-    order: findCol(headers, ["注文番号","注文ID","注文コード","注文No","order"]),
-    item:  findCol(headers, ["商品名","商品","タイトル","アイテム","品名"]),
+    order: findCol(headers, ["注文番号","注文ID","注文コード","注文No"]),
+    code:  findCol(headers, ["ユーザー識別コード","識別コード"]),
+    items: findCol(headers, ["商品ID/数量/商品名","商品ID","商品名","商品"]),
     qty:   findCol(headers, ["数量","個数","点数"]),
-    buyer: findCol(headers, ["宛名","購入者","氏名","名前","お名前"])
+    date:  findCol(headers, ["注文日時"]),
+    total: findCol(headers, ["合計金額","金額"]),
+    status: findCol(headers, ["注文状況","状況"])
   };
 }
-function groupOrders(rows, map){
-  var byKey = {}, list = [], i, r, key, o;
+/* Parse BOOTH's combined items cell: segments separated by newlines,
+   each like "商品ID : 1287772 / 数量 : 1 / 商品名". Falls back gracefully. */
+function parseItemsCell(cell){
+  if (!cell) return [];
+  var parts = String(cell).split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+  var out = [];
+  parts.forEach(function(p){
+    var m = p.match(/商品ID\s*[:：]\s*([^/]+)\/\s*数量\s*[:：]\s*([^/]+)\/\s*(.+)$/);
+    if (m) out.push({ id: m[1].trim(), qty: m[2].trim(), name: m[3].trim() });
+    else out.push({ id: "", qty: "", name: p });
+  });
+  return out;
+}
+function rowsToOrders(rows, map){
+  var list = [], i, r;
   for (i = 0; i < rows.length; i++){
     r = rows[i];
-    key = (r[map.order] || "").trim();
-    if (!key) key = "行" + (i + 1);
-    if (!byKey[key]){ o = { no: key, buyer: map.buyer >= 0 ? (r[map.buyer] || "") : "", items: [], code: "", done: false }; byKey[key] = o; list.push(o); }
-    byKey[key].items.push({
-      name: map.item >= 0 ? (r[map.item] || "") : "",
-      qty: map.qty >= 0 ? (r[map.qty] || "") : ""
+    var no = (map.order >= 0 ? (r[map.order] || "") : "").trim();
+    if (!no) continue;
+    var items;
+    if (map.items >= 0 && map.qty >= 0 && map.items !== map.qty && headersAreSeparate){
+      items = [{ id: "", qty: (r[map.qty] || ""), name: (r[map.items] || "") }];
+    } else if (map.items >= 0){
+      items = parseItemsCell(r[map.items]);
+    } else items = [];
+    list.push({
+      no: no,
+      userCode: map.code >= 0 ? (r[map.code] || "") : "",
+      date: map.date >= 0 ? (r[map.date] || "") : "",
+      total: map.total >= 0 ? (r[map.total] || "") : "",
+      status: map.status >= 0 ? (r[map.status] || "") : "",
+      items: items, code: "", done: false
     });
   }
-  return list;
+  // merge rows sharing an order number (generic CSVs with one row per item)
+  var merged = [], byNo = {};
+  list.forEach(function(o){
+    if (byNo[o.no]){ byNo[o.no].items = byNo[o.no].items.concat(o.items); }
+    else { byNo[o.no] = o; merged.push(o); }
+  });
+  return merged;
 }
+var headersAreSeparate = false;
 function duplicateCodes(orders){
   var seen = {}, dups = {}, i, code;
   for (i = 0; i < orders.length; i++){
     code = (orders[i].code || "").trim();
     if (!code) continue;
-    if (seen[code]){ dups[code] = true; } else seen[code] = true;
+    if (seen[code]) dups[code] = true; else seen[code] = true;
   }
   return dups;
 }
 
 /* ---------- UI ---------- */
 var $ = function(id){ return document.getElementById(id); };
-var pendingRows = null;
-
+var pendingRows = null, pendingHeaders = null;
+function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){} }
 function load(){
   try {
@@ -186,8 +242,7 @@ function load(){
 function render(){
   var box = $("orders"); box.innerHTML = "";
   $("listbox").classList.remove("hidden");
-  var dups = duplicateCodes(state.orders);
-  var doneCount = 0;
+  var dups = duplicateCodes(state.orders), doneCount = 0;
   state.orders.forEach(function(o, idx){
     if (o.done) doneCount++;
     var div = document.createElement("div");
@@ -195,14 +250,14 @@ function render(){
     var itemsHtml = o.items.map(function(it){
       return "<li>" + escapeHtml(it.name) + (it.qty ? " × " + escapeHtml(it.qty) : "") + "</li>";
     }).join("");
+    var meta = [o.userCode ? "識別コード " + o.userCode : "", o.date || "", o.status || ""].filter(Boolean).join(" ・ ");
     div.innerHTML =
       '<div class="head"><span class="no">' + escapeHtml(o.no) + '</span>' +
-      (o.buyer ? '<span class="buyer">' + escapeHtml(o.buyer) + '</span>' : "") + "</div>" +
+      (meta ? '<span class="meta">' + escapeHtml(meta) + '</span>' : "") + "</div>" +
       "<ul>" + itemsHtml + "</ul>" +
-      '<div class="row noprint"><input type="text" placeholder="発送コードを貼り付け" value="' + escapeAttr(o.code) + '">' +
+      '<div class="row"><input type="text" placeholder="発送コードを貼り付け" value="' + escapeHtml(o.code) + '">' +
       '<label class="check"><input type="checkbox"' + (o.done ? " checked" : "") + "> 梱包した</label></div>" +
-      '<div class="dupmsg">この発送コードは他の注文にも使われています。取り違えがないか確認してください。</div>' +
-      (o.code ? '<p class="note">発送コード：' + escapeHtml(o.code) + "</p>" : "");
+      '<div class="dupmsg">この発送コードは他の注文にも使われています。取り違えがないか確認してください。</div>';
     var input = div.querySelector("input[type=text]");
     var check = div.querySelector("input[type=checkbox]");
     input.addEventListener("change", function(){ state.orders[idx].code = input.value; save(); render(); });
@@ -211,36 +266,61 @@ function render(){
   });
   $("progress").textContent = doneCount + " / " + state.orders.length + " 件 梱包済み";
   $("fill").style.width = state.orders.length ? (100 * doneCount / state.orders.length) + "%" : "0%";
+  renderPrintables();
 }
-function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-function escapeAttr(s){ return escapeHtml(s); }
-
+function renderPrintables(){
+  var slips = state.orders.map(function(o){
+    var rows = o.items.map(function(it){
+      return "<tr><td style='width:28px'>□</td><td>" + escapeHtml(it.name) + "</td><td style='width:60px'>× " + escapeHtml(it.qty || "1") + "</td></tr>";
+    }).join("");
+    return '<div class="slip"><span class="s-no">' + escapeHtml(o.no) + '</span> ' +
+      '<span class="s-meta">' + escapeHtml([o.userCode ? "識別コード " + o.userCode : "", o.date || "", o.total ? "合計 " + o.total + "円" : ""].filter(Boolean).join(" ・ ")) + "</span>" +
+      "<table><tr><th></th><th>商品</th><th>数量</th></tr>" + rows + "</table>" +
+      '<div class="s-code">発送コード <span class="s-codebox">' + escapeHtml(o.code || "　") + "</span></div></div>";
+  }).join("");
+  $("printSlips").innerHTML = slips;
+  var tickets = state.orders.map(function(o){
+    var count = o.items.reduce(function(a, it){ return a + (parseInt(it.qty, 10) || 1); }, 0);
+    return '<div class="ticket"><div class="t-no">' + escapeHtml(o.no) + "</div>" +
+      '<div class="t-line">' + escapeHtml([o.userCode ? "識別コード " + o.userCode : "", "商品 " + count + "点"].filter(Boolean).join(" ・ ")) + "</div>" +
+      '<div class="t-code">発送コード：' + escapeHtml(o.code || "＿＿＿＿＿＿＿＿") + "</div></div>";
+  }).join("");
+  $("printTickets").innerHTML = '<div class="ticketgrid">' + tickets + "</div>";
+}
+function printWith(mode){
+  document.body.classList.remove("print-slips","print-tickets");
+  document.body.classList.add(mode);
+  window.print();
+}
 function handleText(text, fileName){
   var rows = parseCSV(text);
   if (rows.length < 2){ alert("CSVの中身が読み取れませんでした。"); return; }
   var headers = rows[0], map = detectMapping(headers);
-  if (map.order === -1 || map.item === -1){
-    pendingRows = rows;
+  headersAreSeparate = map.items >= 0 && map.qty >= 0;
+  if (map.order === -1 || map.items === -1){
+    pendingRows = rows; pendingHeaders = headers;
     ["mapOrder","mapItem","mapQty"].forEach(function(id){
       var sel = $(id); sel.innerHTML = "";
+      var none = document.createElement("option"); none.value = -1; none.textContent = "（なし）"; sel.appendChild(none);
       headers.forEach(function(h, i){ var op = document.createElement("option"); op.value = i; op.textContent = h || ("列" + (i+1)); sel.appendChild(op); });
     });
     if (map.order >= 0) $("mapOrder").value = map.order;
-    if (map.item >= 0) $("mapItem").value = map.item;
-    if (map.qty >= 0) $("mapQty").value = map.qty;
+    if (map.items >= 0) $("mapItem").value = map.items;
     $("mapbox").classList.remove("hidden");
     return;
   }
   applyRows(rows, map, fileName);
 }
 function applyRows(rows, map, fileName){
-  state.orders = groupOrders(rows.slice(1), map);
+  state.orders = rowsToOrders(rows.slice(1), map);
   state.fileName = fileName || "";
   save(); render();
 }
 $("mapApply").addEventListener("click", function(){
   if (!pendingRows) return;
-  var map = { order: parseInt($("mapOrder").value, 10), item: parseInt($("mapItem").value, 10), qty: parseInt($("mapQty").value, 10), buyer: -1 };
+  var map = { order: parseInt($("mapOrder").value, 10), items: parseInt($("mapItem").value, 10),
+    qty: parseInt($("mapQty").value, 10), code: -1, date: -1, total: -1, status: -1 };
+  headersAreSeparate = map.qty >= 0;
   $("mapbox").classList.add("hidden");
   applyRows(pendingRows, map, "");
   pendingRows = null;
@@ -255,9 +335,13 @@ fileInput.addEventListener("change", function(){ handleFile(fileInput.files[0]);
 drop.addEventListener("dragover", function(e){ e.preventDefault(); drop.classList.add("over"); });
 drop.addEventListener("dragleave", function(){ drop.classList.remove("over"); });
 drop.addEventListener("drop", function(e){ e.preventDefault(); drop.classList.remove("over"); handleFile(e.dataTransfer.files[0]); });
-$("printBtn").addEventListener("click", function(){ window.print(); });
+$("printSlipsBtn").addEventListener("click", function(){ printWith("print-slips"); });
+$("printTicketsBtn").addEventListener("click", function(){ printWith("print-tickets"); });
 $("clearBtn").addEventListener("click", function(){
-  if (confirm("保存した照合データを消しますか？")){ state = { orders: [], fileName: "" }; save(); $("orders").innerHTML = ""; $("listbox").classList.add("hidden"); }
+  if (confirm("保存した照合データを消しますか？")){
+    state = { orders: [], fileName: "" }; save();
+    $("orders").innerHTML = ""; $("listbox").classList.add("hidden");
+  }
 });
 load();
 </script>
