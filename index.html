@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201024%201024%22%3E%20%3Crect%20width%3D%221024%22%20height%3D%221024%22%20fill%3D%22%23FAFAF7%22%2F%3E%20%3Cdefs%3E%20%3CclipPath%20id%3D%22backClip%22%3E%20%3Crect%20x%3D%2290%22%20y%3D%22210%22%20width%3D%22620%22%20height%3D%22430%22%20rx%3D%2295%22%2F%3E%20%3C%2FclipPath%3E%20%3C%2Fdefs%3E%20%3C%21--%20back%20label%20--%3E%20%3Crect%20x%3D%2290%22%20y%3D%22210%22%20width%3D%22620%22%20height%3D%22430%22%20rx%3D%2295%22%20fill%3D%22%23FAFAF7%22%20stroke%3D%22%23072A7C%22%20stroke-width%3D%2246%22%2F%3E%20%3Crect%20x%3D%22172%22%20y%3D%22298%22%20width%3D%22216%22%20height%3D%2248%22%20rx%3D%2224%22%20fill%3D%22%23072A7C%22%2F%3E%20%3Crect%20x%3D%22172%22%20y%3D%22374%22%20width%3D%22216%22%20height%3D%2248%22%20rx%3D%2224%22%20fill%3D%22%23072A7C%22%2F%3E%20%3C%21--%20front%20label%20fill%20%28covers%20back%20outline%20inside%29%20--%3E%20%3Crect%20x%3D%22314%22%20y%3D%22424%22%20width%3D%22620%22%20height%3D%22430%22%20rx%3D%2295%22%20fill%3D%22%23FAFAF7%22%2F%3E%20%3C%21--%20gold%20overlap%20%3D%20front%20rect%20clipped%20by%20back%20rect%20--%3E%20%3Cg%20clip-path%3D%22url%28%23backClip%29%22%3E%20%3Crect%20x%3D%22314%22%20y%3D%22424%22%20width%3D%22620%22%20height%3D%22430%22%20rx%3D%2295%22%20fill%3D%22%23CB932E%22%2F%3E%20%3C%2Fg%3E%20%3C%21--%20front%20label%20outline%20--%3E%20%3Crect%20x%3D%22314%22%20y%3D%22424%22%20width%3D%22620%22%20height%3D%22430%22%20rx%3D%2295%22%20fill%3D%22none%22%20stroke%3D%22%23072A7C%22%20stroke-width%3D%2246%22%2F%3E%20%3Crect%20x%3D%22636%22%20y%3D%22678%22%20width%3D%22216%22%20height%3D%2248%22%20rx%3D%2224%22%20fill%3D%22%23072A7C%22%2F%3E%20%3Crect%20x%3D%22636%22%20y%3D%22754%22%20width%3D%22216%22%20height%3D%2248%22%20rx%3D%2224%22%20fill%3D%22%23072A7C%22%2F%3E%20%3C%2Fsvg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BOOTH発送照合｜注文と発送コードの取り違え防止</title>
 <style>
@@ -86,7 +87,8 @@
   <header>
     <div class="kicker">Axioknot · small tool</div>
     <h1>BOOTH発送照合</h1>
-    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストを表示し、梱包票と外貼り票を印刷できます。</p>
+    <p class="lead">BOOTHの自家発送で、注文と発送コードの取り違えを防ぐための道具です。宛名印刷用CSVを読み込むと、注文ごとの照合リストが出ます。梱包票と外貼り票も印刷できます。</p>
+    <p class="note">この道具はBOOTH公式のものではありません。</p>
   </header>
 
   <section>
@@ -94,9 +96,10 @@
     <h2>宛名印刷用CSVを読み込む</h2>
     <div class="drop" id="drop">CSVファイルをここに置くか、クリックして選んでください</div>
     <input type="file" id="file" accept=".csv,text/csv">
-    <p class="note">データはこのブラウザの中だけで処理します。外部に送信することはありません。作業の途中経過はこのブラウザに保存されます。共用のPCでは、作業が終わったら「保存したデータを消す」を押してください。</p>
+    <p class="note">注文データはブラウザ内で処理し、外部には送信しません。取り込んだ注文の項目（注文番号・識別コード・商品・合計金額など）、入力した発送コードと梱包チェックは、このブラウザに保存されます。CSVのファイル名は、列を自動で判定して読み込んだときに保存されます。BOOTHの宛名印刷用CSVをそのまま読み込むと、氏名や住所の列は取り込みません。保存に失敗しても通知は出ません。</p>
+    <p class="note">共用のPCでは、作業が終わったら「保存したデータを消す」を押して確定してください。消去に失敗すると、画面から消えても前の内容が残ることがあります。画面では消去できたか確認できません。共用PCでは、ブラウザの設定からこのサイトのデータも消してください。</p>
     <div id="mapbox" class="hidden">
-      <p class="note">列の対応が自動で分かりませんでした。どの列が何か教えてください。</p>
+      <p class="note">注文番号か商品の列が見つかりませんでした。下の欄で選んでください。氏名や住所の列は選ばないでください。</p>
       <div class="maprow">注文番号 <select id="mapOrder"></select></div>
       <div class="maprow">商品の列 <select id="mapItem"></select></div>
       <div class="maprow">数量の列（あれば） <select id="mapQty"></select></div>
@@ -111,11 +114,11 @@
       <span class="count" id="progress">0 / 0 件 梱包済み</span>
       <div class="track"><div class="fill" id="fill"></div></div>
     </div>
-    <p class="note">発送コードを注文の欄に貼ると、その注文に紐づきます。同じコードが2つの注文に使われると警告が出ます。</p>
+    <p class="note">発送コードは、対応する注文の欄に貼り付けて記録します。読み込んだ一覧の中で、同じコードが2つの注文に使われると警告が出ます。</p>
     <div id="orders"></div>
     <div class="step" style="margin-top:20px">STEP 3</div>
     <h2>印刷して使う</h2>
-    <p class="note">梱包票は商品を入れるときのチェック用です。外貼り票は封をした荷物の外側に貼るための小さい票で、注文番号と発送コードが載ります。</p>
+    <p class="note">梱包票は商品を入れるときのチェック用です。外貼り票は封をした荷物の外側に貼るための小さい票で、注文番号と商品の点数、入力済みの発送コードが載ります。発送コードが未入力なら、記入用の空欄が出ます。識別コードは、CSVから読み込めた場合に載ります。</p>
     <div class="bar">
       <button id="printSlipsBtn" class="primary">梱包票を印刷</button>
       <button id="printTicketsBtn" class="primary">外貼り票を印刷</button>
@@ -124,7 +127,8 @@
   </section>
 
   <footer>
-    使い方：発送作業の前にCSVを読み込み、梱包票を印刷して、商品を入れながらチェックします。発送コードを画面で貼ると記録され、重複も警告されます。印刷した票に手で書いたコードは、この道具では確かめられません。宛名ラベルはお使いの配送サービスで作ってください。外貼り票は宛名ラベルの代わりにはなりません。この道具はBOOTH公式のものではありません。
+    使い方：発送作業の前にCSVを読み込み、梱包票を印刷して、商品を入れながらチェックします。印刷した票に手で書いたコードは、この道具では確かめられません。宛名ラベルはお使いの配送サービスで作ってください。外貼り票は宛名ラベルの代わりにはなりません。
+    <br>配布と連絡先：<a href="https://axioknot.booth.pm/items/9200774">BOOTHで無料ダウンロード</a>／<a href="https://note.com/axioknot">note</a>／<a href="https://x.com/axioknot_ak">X</a>
   </footer>
 </div>
 
